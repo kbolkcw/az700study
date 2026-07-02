@@ -343,8 +343,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   font-size: 0.78rem;
 }
 
-/* ---------- Quiz mode ---------- */
-.quiz-overlay {
+/* ---------- Modal (shared by quiz + glossary) ---------- */
+.modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
@@ -354,9 +354,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   padding: 20px;
   z-index: 100;
 }
-.quiz-overlay[hidden] { display: none; }
+.modal-overlay[hidden] { display: none; }
 
-.quiz-box {
+.modal-box {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -366,8 +366,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
+.modal-box-wide { max-width: 640px; }
 
-.quiz-head {
+.modal-head {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -377,9 +378,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   top: 0;
   background: var(--card-bg);
 }
+.modal-title { font-weight: 700; font-size: 0.95rem; }
 .quiz-progress { font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .quiz-score { font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.quiz-close {
+.modal-close {
   margin-left: auto;
   background: transparent;
   border: none;
@@ -389,8 +391,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   cursor: pointer;
   padding: 4px 6px;
 }
-.quiz-close:hover { color: var(--text-primary); }
+.modal-close:hover { color: var(--text-primary); }
 
+.modal-body { padding: 18px 20px 22px; }
 .quiz-body { padding: 18px 20px 22px; }
 .quiz-domain {
   display: inline-block;
@@ -435,6 +438,45 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
 .quiz-empty { text-align: center; color: var(--text-secondary); padding: 10px 0 4px; }
 
+/* ---------- Glossary ---------- */
+.term-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  border-bottom: 1px dotted var(--text-muted);
+  cursor: help;
+}
+.term-link:hover, .term-link:focus-visible {
+  border-bottom-color: var(--series-1);
+  color: var(--series-1);
+}
+
+.glossary-search {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+
+.glossary-list { display: grid; gap: 2px; }
+.glossary-entry {
+  padding: 8px 8px;
+  border-radius: 6px;
+  transition: background-color 0.4s ease;
+}
+.glossary-entry.flash { background: var(--gridline); }
+.glossary-term { margin: 0; font-weight: 700; font-size: 0.92rem; }
+.glossary-def { margin: 3px 0 0; color: var(--text-secondary); font-size: 0.85rem; }
+.glossary-empty { color: var(--text-muted); text-align: center; padding: 12px 0; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .weight-row { grid-template-columns: 1fr; }
@@ -445,7 +487,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
 /* ---------- Print ---------- */
 @media print {
-  .toolbar, .learn-more, .quiz-overlay { display: none !important; }
+  .toolbar, .learn-more, .modal-overlay { display: none !important; }
   header.top { border: none; }
   .domain.collapsed .domain-body { display: grid !important; }
   .chevron { display: none; }

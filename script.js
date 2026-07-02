@@ -275,6 +275,40 @@ const DOMAINS = [
   }
 ];
 
+const GLOSSARY = {
+  "RFC1918": "The RFC that defines the private IPv4 ranges reserved for internal networks: 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16.",
+  "BYOIP": "Bring Your Own IP — importing a public IP range you already own into Azure instead of using an Azure-assigned range.",
+  "gateway transit": "Lets a spoke VNet use the hub's VPN/ExpressRoute gateway for hybrid connectivity, instead of deploying (and paying for) its own gateway.",
+  "BGP": "Border Gateway Protocol — the dynamic routing protocol used to exchange routes between on-prem devices, Route Server, and VPN/ExpressRoute gateways, so routes update automatically instead of needing manual UDRs.",
+  "Forced tunneling": "Sends all outbound internet-bound traffic (0.0.0.0/0) to an on-prem or NVA next hop instead of straight to the internet, so it can be centrally inspected first.",
+  "SNAT": "Source NAT — rewrites a private source IP to a public IP for outbound traffic, so replies can find their way back to the right internal host. Too many concurrent connections can exhaust available SNAT ports.",
+  "Global Reach": "An ExpressRoute feature that links two separate ExpressRoute circuits together so the on-prem sites behind them can reach each other over Microsoft's network.",
+  "FastPath": "An ExpressRoute data-path optimization that sends most traffic straight to the VNet, bypassing the gateway, for higher throughput and lower latency.",
+  "BFD": "Bidirectional Forwarding Detection — a lightweight keepalive protocol that detects a link failure faster than BGP alone, used to speed up ExpressRoute failover.",
+  "routing intent": "A Virtual WAN Standard feature where you simply declare 'send all internet/private traffic through this secured hub', instead of hand-building route tables.",
+  "secured hub": "A Virtual WAN virtual hub with Azure Firewall (or a partner NVA) built in, so all traffic passing through the hub is centrally inspected.",
+  "multi-site": "An Application Gateway listener mode that routes based on the HTTP Host header, letting one gateway serve multiple domains/websites (as opposed to a 'basic' single-site listener).",
+  "path-based": "An Application Gateway routing rule that sends requests to different backend pools based on the URL path, e.g. /images/* to one pool and /api/* to another.",
+  "TLS termination": "Ending the encrypted HTTPS connection at the load balancer/gateway itself, so it can inspect and route based on the request content.",
+  "end-to-end TLS": "The connection stays encrypted all the way: client → gateway (terminated and inspected), then re-encrypted gateway → backend.",
+  "Anycast": "The same IP address is announced from many edge locations at once; a user's traffic is automatically routed to the nearest one.",
+  "OWASP CRS": "OWASP Core Rule Set — the maintained, generic set of web-attack detection rules (SQL injection, XSS, etc.) used by a WAF's managed rule set.",
+  "IDPS": "Intrusion Detection and Prevention System — inspects traffic for known attack signatures at the network level (an Azure Firewall Premium feature).",
+  "Detection mode": "A WAF operating mode that only logs rule matches without blocking anything — used to baseline/tune exclusions before switching to Prevention mode, which actively blocks matching requests.",
+  "DNAT": "Destination NAT — rewrites the destination IP/port of inbound traffic, e.g. forwarding a public IP:port to an internal private IP (used for Azure Firewall DNAT rules).",
+  "L3/L4": "Network (L3, IP address) and Transport (L4, TCP/UDP port) layer — a decision based only on IP/port/protocol, not on the content of the traffic.",
+  "L7": "Application layer — a decision based on the actual content of the traffic, such as an HTTP host header, URL path, or cookie (used by Application Gateway, Front Door, and WAF).",
+  "FQDN": "Fully Qualified Domain Name — a complete domain name (e.g. www.contoso.com), used e.g. in Azure Firewall application rules to allow/deny by name instead of by IP.",
+  "Private peering": "An ExpressRoute peering type that gives private access to your VNets over the circuit.",
+  "Microsoft peering": "An ExpressRoute peering type used to reach Microsoft 365 and other public PaaS service endpoints privately over the circuit, instead of over the internet.",
+  "Private Link Service": "Lets you front your own service with a Standard Load Balancer and expose it to other VNets/tenants privately — the same mechanism Microsoft uses to offer its own PaaS services via Private Link.",
+  "NVA": "Network Virtual Appliance — a third-party (or custom) firewall/router VM running in a VNet, not natively managed by the Azure platform.",
+  "Gateway Load Balancer": "A Load Balancer SKU that transparently inserts a third-party NVA into the traffic path for inspection ('service chaining'), without the client or destination needing to know it's there.",
+  "Effective Routes": "A Network Watcher diagnostic that shows the actual, merged routing table applied to a NIC — the result of system routes, UDRs, and BGP-learned routes combined.",
+  "VMSS": "Virtual Machine Scale Set — a group of identical, autoscaling VMs, commonly placed behind a Load Balancer or Application Gateway.",
+  "Local Network Gateway": "The Azure object that represents your on-prem VPN device: its public IP plus the address prefixes reachable behind it, so the Azure VPN Gateway knows how to route to it."
+};
+
 const FIELD_LABELS = [
   ["who", "Who"], ["what", "What"], ["when", "When"],
   ["where", "Where"], ["why", "Why"], ["how", "How"]
@@ -314,12 +348,32 @@ function renderWeights() {
   }).join("");
 }
 
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const TERM_REGEX = new RegExp(
+  `(?<![A-Za-z0-9])(${Object.keys(GLOSSARY).sort((a, b) => b.length - a.length).map(escapeRegExp).join("|")})(?![A-Za-z0-9])`,
+  "g"
+);
+
+function termSlug(term) {
+  return term.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function linkifyTerms(text) {
+  return text.replace(TERM_REGEX, match => {
+    const def = GLOSSARY[match].replace(/"/g, "&quot;");
+    return `<button type="button" class="term-link" data-term="${match}" title="${def}">${match}</button>`;
+  });
+}
+
 function fieldHtml(component, key, label) {
   const items = component[key];
   return `
     <div class="field">
       <span class="label">${label}</span>
-      <ul>${items.map(i => `<li>${i}</li>`).join("")}</ul>
+      <ul>${items.map(i => `<li>${linkifyTerms(i)}</li>`).join("")}</ul>
     </div>`;
 }
 
@@ -334,7 +388,7 @@ function cardHtml(domain, c) {
           reviewed
         </label>
       </div>
-      <p class="card-summary">${c.summary}</p>
+      <p class="card-summary">${linkifyTerms(c.summary)}</p>
       <div class="fields">
         ${FIELD_LABELS.map(([key, label]) => fieldHtml(c, key, label)).join("")}
       </div>
@@ -563,10 +617,67 @@ function initQuiz() {
   });
 }
 
+/* ---------- Glossary ---------- */
+
+function renderGlossaryList(filter) {
+  const list = document.getElementById("glossaryList");
+  const q = filter.trim().toLowerCase();
+  const terms = Object.keys(GLOSSARY).sort((a, b) => a.localeCompare(b));
+  const matches = terms.filter(t => !q || t.toLowerCase().includes(q) || GLOSSARY[t].toLowerCase().includes(q));
+
+  if (!matches.length) {
+    list.innerHTML = `<p class="glossary-empty">No terms match.</p>`;
+    return;
+  }
+
+  list.innerHTML = matches.map(t => `
+    <div class="glossary-entry" id="term-${termSlug(t)}">
+      <p class="glossary-term">${t}</p>
+      <p class="glossary-def">${GLOSSARY[t]}</p>
+    </div>`).join("");
+}
+
+function openGlossary(term) {
+  document.getElementById("glossarySearch").value = "";
+  renderGlossaryList("");
+  document.getElementById("glossaryOverlay").hidden = false;
+
+  if (term) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`term-${termSlug(term)}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 1500);
+    });
+  }
+}
+
+function closeGlossary() {
+  document.getElementById("glossaryOverlay").hidden = true;
+}
+
+function initGlossary() {
+  document.getElementById("glossaryStart").addEventListener("click", () => openGlossary());
+  document.getElementById("glossaryClose").addEventListener("click", closeGlossary);
+  document.getElementById("glossaryOverlay").addEventListener("click", e => {
+    if (e.target.id === "glossaryOverlay") closeGlossary();
+  });
+  document.getElementById("glossarySearch").addEventListener("input", e => renderGlossaryList(e.target.value));
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !document.getElementById("glossaryOverlay").hidden) closeGlossary();
+  });
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".term-link");
+    if (btn) openGlossary(btn.dataset.term);
+  });
+}
+
 function init() {
   render();
   initTheme();
   initQuiz();
+  initGlossary();
 
   document.getElementById("search").addEventListener("input", e => applySearch(e.target.value));
 
