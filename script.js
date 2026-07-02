@@ -309,6 +309,76 @@ const GLOSSARY = {
   "Local Network Gateway": "The Azure object that represents your on-prem VPN device: its public IP plus the address prefixes reachable behind it, so the Azure VPN Gateway knows how to route to it."
 };
 
+const DEEPDIVES = {
+  "lb-tm": {
+    title: "Load Balancer & Traffic Manager — how the settings fit together",
+    sections: [
+      {
+        name: "Azure Load Balancer",
+        flow: ["Client", "Frontend IP", "LB rule", "Health probe", "Backend pool"],
+        intro: "Load Balancer sits in the data path at L4 — every packet actually passes through it. Build bottom-up: a rule can't reference a backend pool or probe that don't exist yet.",
+        steps: [
+          { title: "1. Backend pool", detail: "The VMs/VMSS instances (or IP-based targets) that will receive distributed traffic." },
+          { title: "2. Health probe", detail: "Checks each backend pool member's health; unhealthy members stop receiving new connections from any rule that uses this probe." },
+          { title: "3. Frontend IP configuration", detail: "The public or internal IP + port clients actually connect to." },
+          { title: "4. Load balancing rule", detail: "Ties a frontend IP+port to a backend pool and a health probe, plus session persistence (source IP affinity) and idle timeout." },
+          { title: "5. Optional — inbound NAT rule", detail: "Maps one frontend port straight to one specific backend instance/port (e.g. per-VM RDP/SSH), bypassing the load-balancing rule's distribution." },
+          { title: "6. Optional — outbound rule", detail: "Explicitly defines SNAT behavior for outbound-only traffic from the backend pool, independent of any inbound rule." },
+          { title: "7. Optional — Gateway Load Balancer chaining", detail: "Transparently inserts a third-party NVA into the path between frontend and backend pool for inspection." }
+        ]
+      },
+      {
+        name: "Traffic Manager",
+        flow: ["Client DNS query", "TM profile", "Routing method", "Selected endpoint", "Direct connection"],
+        intro: "Traffic Manager is DNS-only — it's never in the data path. It only decides which endpoint's address to hand back to the client's DNS resolver.",
+        steps: [
+          { title: "1. Endpoints", detail: "Register the actual regional deployments: Azure endpoints, external endpoints, or nested Traffic Manager profiles." },
+          { title: "2. Endpoint monitoring", detail: "Traffic Manager health-checks every endpoint; unhealthy ones are automatically excluded from DNS answers." },
+          { title: "3. Routing method", detail: "Priority (failover), Weighted, Performance (lowest latency), Geographic, MultiValue, or Subnet — determines which healthy endpoint gets returned for a given query." },
+          { title: "4. DNS TTL", detail: "Clients resolve the Traffic Manager DNS name; a short TTL lets Traffic Manager react to endpoint failures faster, at the cost of more frequent DNS lookups." },
+          { title: "5. Direct connection", detail: "Once resolved, the client connects straight to the returned endpoint — Traffic Manager itself never sees the actual traffic." }
+        ]
+      }
+    ]
+  },
+  appgw: {
+    title: "Application Gateway — how the settings fit together",
+    sections: [
+      {
+        flow: ["Client", "Listener", "Routing rule", "HTTP settings", "Backend pool"],
+        intro: "Application Gateway's settings form a dependency chain: each object references the one before it, so build them bottom-up — a routing rule can't point at HTTP settings or a listener that don't exist yet.",
+        steps: [
+          { title: "1. Backend pool", detail: "The eventual destination(s) for traffic: VMs, a VMSS, an App Service, or an external IP/FQDN. Create this first since every routing rule needs one to point to." },
+          { title: "2. Health probe", detail: "Defines how the gateway checks a backend member's health (path, interval, healthy/unhealthy thresholds). A default probe is created automatically, but a custom probe must exist before HTTP settings can reference it." },
+          { title: "3. HTTP settings", detail: "The glue between a routing rule and a backend pool: protocol/port to the backend, cookie-based session affinity, request timeout, and which health probe to use. Enabling HTTPS here (instead of HTTP) to the backend is what gives you end-to-end TLS." },
+          { title: "4. Listener", detail: "The public/private entry point: protocol (HTTP/HTTPS), port, and hostname. A basic listener serves one site; a multi-site listener matches a specific Host header, so one gateway can serve many domains. An HTTPS listener is also where TLS termination happens, using an attached certificate." },
+          { title: "5. Routing rule", detail: "Binds one listener to a backend target via HTTP settings. A basic rule always sends the listener's traffic to the same backend pool; a path-based rule adds a path map so /images/* and /api/* can each go to a different pool with its own HTTP settings and probe." },
+          { title: "6. Optional — rewrite rule set", detail: "Attached to a routing rule to rewrite request/response headers or the URL itself before the request reaches the backend (or before the response reaches the client)." },
+          { title: "7. Optional — WAF policy (WAF_v2 SKU)", detail: "Sits in front of the routing rule: every request is inspected against the OWASP CRS (and any custom rules) in Detection mode or Prevention mode before it's allowed to continue down the chain." }
+        ]
+      }
+    ]
+  },
+  frontdoor: {
+    title: "Front Door — how the settings fit together",
+    sections: [
+      {
+        flow: ["Client", "Endpoint", "Route", "Origin group", "Origin"],
+        intro: "Front Door mirrors Application Gateway's dependency chain, but globally at Microsoft's edge — origins and origin groups replace backend pools and HTTP settings.",
+        steps: [
+          { title: "1. Origin(s)", detail: "The actual backend(s): an App Service, a regional Application Gateway, storage, or any public/private endpoint (via Private Link)." },
+          { title: "2. Origin group", detail: "Groups one or more origins with health probes plus priority/weight, so Front Door knows which are healthy and how to load-balance or fail over between them." },
+          { title: "3. Endpoint", detail: "The public Front Door hostname (or custom domain) clients connect to; this is also where TLS termination happens." },
+          { title: "4. Route", detail: "Binds an endpoint (+ optional path pattern) to an origin group, and configures caching, protocol, and URL rewrite/redirect for matching requests." },
+          { title: "5. Optional — rules engine", detail: "Evaluated within a route to rewrite or redirect the request/response, e.g. force HTTPS or rewrite a path." },
+          { title: "6. Optional — WAF policy", detail: "Associated with the endpoint's domains; every request is inspected against the OWASP CRS before it reaches a route." },
+          { title: "7. Optional — end-to-end TLS to origin", detail: "Front Door terminates the client's TLS at the edge, then can re-encrypt when forwarding to the origin." }
+        ]
+      }
+    ]
+  }
+};
+
 const FIELD_LABELS = [
   ["who", "Who"], ["what", "What"], ["when", "When"],
   ["where", "Where"], ["why", "Why"], ["how", "How"]
@@ -389,6 +459,7 @@ function cardHtml(domain, c) {
         </label>
       </div>
       <p class="card-summary">${linkifyTerms(c.summary)}</p>
+      ${DEEPDIVES[c.id] ? `<button type="button" class="btn-deepdive" data-deepdive="${c.id}">🔍 Configuration flow</button>` : ""}
       <div class="fields">
         ${FIELD_LABELS.map(([key, label]) => fieldHtml(c, key, label)).join("")}
       </div>
@@ -673,11 +744,63 @@ function initGlossary() {
   });
 }
 
+/* ---------- Deep dive (configuration flow) ---------- */
+
+function deepDiveSectionHtml(section) {
+  const flowHtml = section.flow.map((node, i) => `
+    ${i > 0 ? `<span class="flow-arrow">→</span>` : ""}
+    <span class="flow-node">${node}</span>`).join("");
+
+  const stepsHtml = section.steps.map(s => `
+    <div class="deepdive-step">
+      <p class="deepdive-step-title">${s.title}</p>
+      <p class="deepdive-step-detail">${linkifyTerms(s.detail)}</p>
+    </div>`).join("");
+
+  return `
+    <div class="deepdive-section">
+      ${section.name ? `<h3 class="deepdive-section-title">${section.name}</h3>` : ""}
+      <p class="deepdive-intro">${linkifyTerms(section.intro)}</p>
+      <div class="flow-diagram">${flowHtml}</div>
+      <div class="deepdive-steps">${stepsHtml}</div>
+    </div>`;
+}
+
+function renderDeepDive(id) {
+  const dive = DEEPDIVES[id];
+  document.getElementById("deepdiveBody").innerHTML = dive.sections.map(deepDiveSectionHtml).join("");
+}
+
+function openDeepDive(id) {
+  document.getElementById("deepdiveTitle").textContent = DEEPDIVES[id].title;
+  renderDeepDive(id);
+  document.getElementById("deepdiveOverlay").hidden = false;
+}
+
+function closeDeepDive() {
+  document.getElementById("deepdiveOverlay").hidden = true;
+}
+
+function initDeepDive() {
+  document.getElementById("deepdiveClose").addEventListener("click", closeDeepDive);
+  document.getElementById("deepdiveOverlay").addEventListener("click", e => {
+    if (e.target.id === "deepdiveOverlay") closeDeepDive();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !document.getElementById("deepdiveOverlay").hidden) closeDeepDive();
+  });
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".btn-deepdive");
+    if (btn) openDeepDive(btn.dataset.deepdive);
+  });
+}
+
 function init() {
   render();
   initTheme();
   initQuiz();
   initGlossary();
+  initDeepDive();
 
   document.getElementById("search").addEventListener("input", e => applySearch(e.target.value));
 
