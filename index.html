@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZ-700 Exam Prep — 5W1H Reference</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="top-heading">
+      <h1>AZ-700 Exam Prep</h1>
+      <p class="subtitle">Designing and Implementing Microsoft Azure Networking Solutions — every core component, in a Who / What / When / Where / Why / How view.</p>
+    </div>
+    <div class="top-meta">
+      <span class="pill">Pass score: 700 / 1000</span>
+      <span class="pill" id="lastUpdated">Skills outline: effective 27 Jul 2026</span>
+      <a class="pill pill-link" href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-700" target="_blank" rel="noopener">Official study guide ↗</a>
+    </div>
+  </div>
+
+  <div class="weights" id="weights" aria-label="Exam domain weighting"></div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <input type="search" id="search" placeholder="Search components — e.g. VPN, firewall, DNS…" aria-label="Search components">
+    <button id="summaryToggle" class="btn" type="button" aria-pressed="false">Summary mode</button>
+    <button id="expandAll" class="btn" type="button">Expand all</button>
+    <div class="progress-wrap" title="Components marked as reviewed">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 0 reviewed</span>
+    </div>
+  </div>
+</div>
+
+<main id="domains"></main>
+
+<section class="learn-more">
+  <div class="learn-more-inner">
+    <h2>Extra suggestions for learning this exam</h2>
+    <ul>
+      <li><strong>Practice assessment first, then fill gaps.</strong> Take the free official <a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-700/practice/assessment?assessment-type=practice&assessmentId=70" target="_blank" rel="noopener">Microsoft Learn practice assessment</a> early to see which of the 5 domains needs the most work — then spend time proportional to each domain's weight (core infra and security are the two heaviest at 25–30% and 15–20%).</li>
+      <li><strong>Lab it, don't just read it.</strong> Use the <a href="https://learn.microsoft.com/en-us/training/paths/design-implement-microsoft-azure-networking-solutions-az-700/" target="_blank" rel="noopener">Microsoft Learn training path</a>'s free sandboxes to actually build a hub-and-spoke VNet, peer it, add a VPN Gateway and Firewall — routing/UDR questions are much easier once you've watched traffic actually take the wrong path once.</li>
+      <li><strong>Use "Mark as reviewed" as a spaced-repetition tracker.</strong> Tick off a card only once you can explain its How column from memory; revisit unticked cards a few days later instead of re-reading everything linearly.</li>
+      <li><strong>Summary mode = your final cheat sheet.</strong> Toggle it on the day before the exam and read top-to-bottom — it collapses every card to one line so you can sanity-check recall in under 15 minutes.</li>
+      <li><strong>Print it.</strong> The page has a print stylesheet (Ctrl/Cmd+P) that expands everything and strips the UI chrome, so you can export a clean PDF cheat sheet.</li>
+      <li><strong>Know your SKUs cold.</strong> A large share of scenario questions hinge on picking the right SKU/tier (VPN Gateway SKU, ExpressRoute tier, Load Balancer SKU, Application Gateway v2 vs WAF_v2, Front Door Standard vs Premium) — the How field on each card calls these out deliberately.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <p>Static reference built from the official AZ-700 skills-measured outline on Microsoft Learn. Not affiliated with or endorsed by Microsoft. Content stored entirely client-side — nothing leaves your browser.</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
