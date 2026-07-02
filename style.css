@@ -17,13 +17,35 @@
   --series-5: #4a3aa7; /* violet  — Network security */
 
   --status-good: #0ca30c;
+  --status-bad:  #d63b3b;
 
   --radius: 10px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+:root[data-theme="dark"] {
+  --surface-1:      #1a1a19;
+  --page:           #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --gridline:       #2c2c2a;
+  --baseline:       #383835;
+  --border:         rgba(255,255,255,0.10);
+  --card-bg:        #202020;
+
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #9085e9;
+
+  --status-good: #0ca30c;
+  --status-bad:  #e35555;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --surface-1:      #1a1a19;
     --page:           #0d0d0d;
     --text-primary:   #ffffff;
@@ -41,6 +63,7 @@
     --series-5: #9085e9;
 
     --status-good: #0ca30c;
+    --status-bad:  #e35555;
   }
 }
 
@@ -157,6 +180,18 @@ header.top {
   border-color: var(--series-1);
   color: #fff;
 }
+
+.quiz-scope {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.quiz-scope input { accent-color: var(--series-1); width: 15px; height: 15px; }
 
 .progress-wrap {
   display: flex;
@@ -308,6 +343,98 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
   font-size: 0.78rem;
 }
 
+/* ---------- Quiz mode ---------- */
+.quiz-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+.quiz-overlay[hidden] { display: none; }
+
+.quiz-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+.quiz-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--card-bg);
+}
+.quiz-progress { font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.quiz-score { font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.quiz-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.quiz-close:hover { color: var(--text-primary); }
+
+.quiz-body { padding: 18px 20px 22px; }
+.quiz-domain {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--domain-color, var(--series-1));
+  margin-bottom: 6px;
+}
+.quiz-title { margin: 0 0 6px; font-size: 1.2rem; }
+.quiz-summary { margin: 0 0 16px; color: var(--text-secondary); font-size: 0.9rem; }
+
+.quiz-answer { display: grid; gap: 8px; margin-bottom: 16px; }
+.quiz-answer .field { font-size: 0.85rem; }
+
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn-reveal {
+  background: var(--series-1);
+  border-color: var(--series-1);
+  color: #fff;
+}
+.btn-correct {
+  border-color: var(--status-good);
+  color: var(--status-good);
+}
+.btn-correct:hover { background: var(--status-good); color: #fff; }
+.btn-incorrect {
+  border-color: var(--status-bad);
+  color: var(--status-bad);
+}
+.btn-incorrect:hover { background: var(--status-bad); color: #fff; }
+
+.quiz-summary-screen { text-align: center; }
+.quiz-summary-screen .quiz-result-score {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+.quiz-summary-screen p { color: var(--text-secondary); margin: 0 0 18px; }
+.quiz-summary-screen .quiz-actions { justify-content: center; }
+
+.quiz-empty { text-align: center; color: var(--text-secondary); padding: 10px 0 4px; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .weight-row { grid-template-columns: 1fr; }
@@ -318,7 +445,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
 /* ---------- Print ---------- */
 @media print {
-  .toolbar, .learn-more { display: none !important; }
+  .toolbar, .learn-more, .quiz-overlay { display: none !important; }
   header.top { border: none; }
   .domain.collapsed .domain-body { display: grid !important; }
   .chevron { display: none; }

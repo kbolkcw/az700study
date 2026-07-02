@@ -282,6 +282,7 @@ const FIELD_LABELS = [
 
 const REVIEWED_KEY = "az700.reviewed";
 const SUMMARY_KEY = "az700.summaryMode";
+const THEME_KEY = "az700.theme";
 
 function loadReviewed() {
   try { return new Set(JSON.parse(localStorage.getItem(REVIEWED_KEY) || "[]")); }
@@ -407,8 +408,165 @@ function applySearch(term) {
   document.getElementById("noResults").style.display = anyVisible ? "none" : "block";
 }
 
+/* ---------- Dark mode ---------- */
+
+function effectiveTheme() {
+  const stored = document.documentElement.getAttribute("data-theme");
+  if (stored) return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function updateThemeButton() {
+  const btn = document.getElementById("themeToggle");
+  const isDark = effectiveTheme() === "dark";
+  btn.textContent = isDark ? "☀️ Light mode" : "🌙 Dark mode";
+  btn.setAttribute("aria-pressed", String(isDark));
+}
+
+function initTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored) document.documentElement.setAttribute("data-theme", stored);
+  updateThemeButton();
+
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const next = effectiveTheme() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem(THEME_KEY, next);
+    updateThemeButton();
+  });
+}
+
+/* ---------- Quiz mode ---------- */
+
+const quiz = { queue: [], index: 0, correct: 0, answered: 0 };
+
+function allComponents() {
+  return DOMAINS.flatMap(domain => domain.components.map(component => ({ domain, component })));
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function openQuiz() {
+  const unreviewedOnly = document.getElementById("quizUnreviewedOnly").checked;
+  let pool = allComponents();
+  if (unreviewedOnly) pool = pool.filter(({ component }) => !reviewed.has(component.id));
+
+  quiz.queue = shuffle(pool);
+  quiz.index = 0;
+  quiz.correct = 0;
+  quiz.answered = 0;
+
+  document.getElementById("quizOverlay").hidden = false;
+  renderQuizQuestion();
+}
+
+function closeQuiz() {
+  document.getElementById("quizOverlay").hidden = true;
+}
+
+function updateQuizHeader() {
+  const total = quiz.queue.length;
+  const shown = Math.min(quiz.index + 1, total);
+  document.getElementById("quizProgress").textContent = total ? `Card ${shown} / ${total}` : "";
+  document.getElementById("quizScore").textContent = `${quiz.correct} / ${quiz.answered} correct`;
+}
+
+function renderQuizQuestion() {
+  updateQuizHeader();
+  const body = document.getElementById("quizBody");
+
+  if (quiz.queue.length === 0) {
+    body.innerHTML = `<p class="quiz-empty">Nothing to quiz — every component is already marked as reviewed. Uncheck "unreviewed only" to quiz everything.</p>`;
+    return;
+  }
+
+  if (quiz.index >= quiz.queue.length) {
+    renderQuizSummary();
+    return;
+  }
+
+  const { domain, component } = quiz.queue[quiz.index];
+  body.innerHTML = `
+    <span class="quiz-domain" style="--domain-color:var(${domain.colorVar})">${domain.name}</span>
+    <h3 class="quiz-title">${component.title}</h3>
+    <p class="quiz-summary">Try to recall the Who / What / When / Where / Why / How, then reveal the answer.</p>
+    <div class="quiz-actions">
+      <button class="btn btn-reveal" id="quizReveal" type="button">Show answer</button>
+    </div>`;
+
+  document.getElementById("quizReveal").addEventListener("click", () => renderQuizAnswer(domain, component));
+}
+
+function renderQuizAnswer(domain, component) {
+  const body = document.getElementById("quizBody");
+  body.innerHTML = `
+    <span class="quiz-domain" style="--domain-color:var(${domain.colorVar})">${domain.name}</span>
+    <h3 class="quiz-title">${component.title}</h3>
+    <div class="quiz-answer">
+      ${FIELD_LABELS.map(([key, label]) => fieldHtml(component, key, label)).join("")}
+    </div>
+    <div class="quiz-actions">
+      <button class="btn btn-incorrect" id="quizIncorrect" type="button">✕ Didn't know it</button>
+      <button class="btn btn-correct" id="quizCorrect" type="button">✓ Knew it</button>
+    </div>`;
+
+  document.getElementById("quizCorrect").addEventListener("click", () => answerQuiz(component, true));
+  document.getElementById("quizIncorrect").addEventListener("click", () => answerQuiz(component, false));
+}
+
+function answerQuiz(component, wasCorrect) {
+  quiz.answered++;
+  if (wasCorrect) {
+    quiz.correct++;
+    reviewed.add(component.id);
+    saveReviewed(reviewed);
+    updateProgress();
+    const card = document.querySelector(`.card[data-id="${component.id}"]`);
+    if (card) {
+      card.classList.add("reviewed");
+      const cb = card.querySelector("[data-reviewed]");
+      if (cb) cb.checked = true;
+    }
+  }
+  quiz.index++;
+  renderQuizQuestion();
+}
+
+function renderQuizSummary() {
+  const body = document.getElementById("quizBody");
+  const pct = quiz.answered ? Math.round((quiz.correct / quiz.answered) * 100) : 0;
+  body.innerHTML = `
+    <div class="quiz-summary-screen">
+      <div class="quiz-result-score">${quiz.correct} / ${quiz.answered}</div>
+      <p>${pct}% correct this round.</p>
+      <div class="quiz-actions">
+        <button class="btn btn-reveal" id="quizRestart" type="button">Quiz again</button>
+      </div>
+    </div>`;
+  document.getElementById("quizRestart").addEventListener("click", openQuiz);
+}
+
+function initQuiz() {
+  document.getElementById("quizStart").addEventListener("click", openQuiz);
+  document.getElementById("quizClose").addEventListener("click", closeQuiz);
+  document.getElementById("quizOverlay").addEventListener("click", e => {
+    if (e.target.id === "quizOverlay") closeQuiz();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !document.getElementById("quizOverlay").hidden) closeQuiz();
+  });
+}
+
 function init() {
   render();
+  initTheme();
+  initQuiz();
 
   document.getElementById("search").addEventListener("input", e => applySearch(e.target.value));
 

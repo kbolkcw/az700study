@@ -29,6 +29,12 @@
     <input type="search" id="search" placeholder="Search components — e.g. VPN, firewall, DNS…" aria-label="Search components">
     <button id="summaryToggle" class="btn" type="button" aria-pressed="false">Summary mode</button>
     <button id="expandAll" class="btn" type="button">Expand all</button>
+    <button id="themeToggle" class="btn" type="button" aria-pressed="false">🌙 Dark mode</button>
+    <label class="quiz-scope">
+      <input type="checkbox" id="quizUnreviewedOnly">
+      unreviewed only
+    </label>
+    <button id="quizStart" class="btn" type="button">🧠 Quiz me</button>
     <div class="progress-wrap" title="Components marked as reviewed">
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       <span class="progress-label" id="progressLabel">0 / 0 reviewed</span>
@@ -55,6 +61,17 @@
 <footer class="site-footer">
   <p>Static reference built from the official AZ-700 skills-measured outline on Microsoft Learn. Not affiliated with or endorsed by Microsoft. Content stored entirely client-side — nothing leaves your browser.</p>
 </footer>
+
+<div class="quiz-overlay" id="quizOverlay" hidden>
+  <div class="quiz-box" role="dialog" aria-modal="true" aria-label="Quiz">
+    <div class="quiz-head">
+      <span class="quiz-progress" id="quizProgress"></span>
+      <span class="quiz-score" id="quizScore"></span>
+      <button class="quiz-close" id="quizClose" type="button" aria-label="Close quiz">✕</button>
+    </div>
+    <div class="quiz-body" id="quizBody"></div>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
